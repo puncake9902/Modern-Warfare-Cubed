@@ -143,69 +143,93 @@ public class StationPacket implements IMessage {
 
 		@Override
 		public IMessage onMessage(StationPacket message, MessageContext messageContext) {
-			if(messageContext.side == Side.SERVER) {
-				messageContext.getServerHandler().player.getServer().addScheduledTask(() -> {
-	            	World world = messageContext.getServerHandler().player.world;
+			if (messageContext.side != Side.SERVER)
+				return null;
 
-	            	TileEntity tileEntity = world.getTileEntity(message.teLocation);
-	            	if(tileEntity instanceof TileEntityStation) {
-	            		TileEntityStation station = (TileEntityStation) tileEntity;
+			messageContext.getServerHandler().player.getServer().addScheduledTask(() -> {
+				final World world = messageContext.getServerHandler().player.world;
+				final TileEntity tileEntity = world.getTileEntity(message.teLocation);
 
-	            		if(message.opcode == CRAFT) {
-	            			if(tileEntity instanceof TileEntityAmmoPress) {
-	            				// Since it's based on a queue, you can add whatever you'd like and it
-	            				// will merely refuse to craft it until you have the resources avaliable.
-	            				TileEntityAmmoPress press = (TileEntityAmmoPress) station;
-		            			Item item = CraftingRegistry.getModernCrafting(message.craftingGroup, message.craftingName).getItem();
-		            			ItemStack newStack = new ItemStack(item, message.quantity);
+				if (tileEntity instanceof TileEntityStation) {
+					final TileEntityStation station = (TileEntityStation) tileEntity;
 
-		            			if(press.hasStack()) {
-		            				ItemStack topQueue = press.getCraftingQueue().getLast();
-		            				if(ItemStack.areItemsEqualIgnoreDurability(topQueue, newStack))
-		            					topQueue.grow(message.quantity);
-									else
-		            					press.addStack(newStack);
-		            			} else
-		            				press.addStack(newStack);
+					if (message.opcode == CRAFT) {
+						if (tileEntity instanceof TileEntityAmmoPress) {
+							// Since it's based on a queue, you can add whatever you'd like, and it
+							// will merely refuse to craft it until you have the resources available.
+							final TileEntityAmmoPress press = (TileEntityAmmoPress) station;
+							final ItemStack newStack = new ItemStack(CraftingRegistry.getModernCrafting(message.craftingGroup, message.craftingName).getItem(), message.quantity);
 
-		            			modContext.getChannel().sendToAllAround(new StationClientPacket(station.getWorld(), message.teLocation), new TargetPoint(0, message.teLocation.getX(), message.teLocation.getY(), message.teLocation.getZ(), 20));
+							if(press.hasStack()) {
+								final ItemStack topQueue = press.getCraftingQueue().getLast();
+								if(ItemStack.areItemsEqualIgnoreDurability(topQueue, newStack))
+									topQueue.grow(message.quantity);
+								else
+									press.addStack(newStack);
+							} else
+								press.addStack(newStack);
 
-		            			return;
-	            			}
-	            			CraftingEntry[] modernRecipe = CraftingRegistry.getModernCrafting(message.craftingGroup, message.craftingName).getModernRecipe();
-		            		if(modernRecipe == null)
-								return;
+							modContext.getChannel().sendToAllAround(new StationClientPacket(station.getWorld(), message.teLocation), new TargetPoint(0, message.teLocation.getX(), message.teLocation.getY(), message.teLocation.getZ(), 20));
+							return;
+						}
+						final CraftingEntry[] modernRecipe = CraftingRegistry.getModernCrafting(message.craftingGroup, message.craftingName).getModernRecipe();
+						if (modernRecipe == null)
+							return;
 
-		            		// Add all items to an item list to verify that they exist.
-		            		HashMap<Item, ItemStack> itemList = new HashMap<>(27, 0.7f);
-		            		for(int i = 23; i < station.mainInventory.getSlots(); ++i)
-		            			itemList.put(station.mainInventory.getStackInSlot(i).getItem(), station.mainInventory.getStackInSlot(i));
+						// Add all items to an item list to verify that they exist.
+						final ArrayList<Pair<Item, Integer>> toConsume = new ArrayList<>();
+						final HashMap<Item, ItemStack> itemList = new HashMap<>(27, 0.7f);
+						for (int i = 23; i < station.mainInventory.getSlots(); ++i) {
+							final ItemStack stack = station.mainInventory.getStackInSlot(i);
+							itemList.put(stack.getItem(), stack);
+						}
 
-		            		ArrayList<Pair<Item, Integer>> toConsume = new ArrayList<>();
+						// Verify
+						for (final CraftingEntry stack : modernRecipe) {
+							if (!stack.isOreDictionary()) {
+								// Paneedah Start - Check for total item quantity instead of stack quantity
+								final Item item = stack.getItem();
+								if (!itemList.containsKey(item))
+									return;
 
-		            		// Verify
-		            		for(CraftingEntry stack : modernRecipe) {
-		            			if(!stack.isOreDictionary()) {
-		            				// Does it even have that item? / Does it have enough of that item?
-			            			if(!itemList.containsKey(stack.getItem()) || stack.getCount() > itemList.get(stack.getItem()).getCount())
-			            				return;
+								int count = 0;
+								for (int i = 23; i < station.mainInventory.getSlots(); ++i) {
+									final ItemStack iS = station.mainInventory.getStackInSlot(i);
+									if (iS.getItem() == item)
+										count += iS.getCount();
+								}
 
-			            			toConsume.add(new Pair<Item, Integer>(stack.getItem(), stack.getCount()));
-		            			} else {
-		            				// Stack is an OreDictionary term
-		            				boolean hasAny = false;
-		            				NonNullList<ItemStack> list = OreDictionary.getOres(stack.getOreDictionaryEntry());
-		            				for(ItemStack toTest : list) {
-		            					if(itemList.containsKey(toTest.getItem()) && stack.getCount() <= itemList.get(toTest.getItem()).getCount()) {
-		            						hasAny = true;
-		            						toConsume.add(new Pair<Item, Integer>(toTest.getItem(), stack.getCount()));
-		            						break;
-		            					}
-		            				}
+								if (count < stack.getCount()) {
+									System.out.println("Not enough items to craft! | " + count + " < " + stack.getCount());
+									return;
+								}
 
-		            				if(!hasAny) return;
-		            			}
-		            		}
+								toConsume.add(new Pair<>(item, stack.getCount()));
+								// Paneedah - End
+
+								/* Paneedah: Old code to consume items
+
+								if (!itemList.containsKey(stack.getItem()) || stack.getCount() > itemList.get(stack.getItem()).getCount())
+									return;
+								toConsume.add(new Pair<>(stack.getItem(), stack.getCount()));
+								 */
+
+							} else {
+								// Stack is an OreDictionary term
+								boolean hasAny = false;
+								final NonNullList<ItemStack> list = OreDictionary.getOres(stack.getOreDictionaryEntry());
+								for (ItemStack toTest : list) {
+									if (itemList.containsKey(toTest.getItem()) && stack.getCount() <= itemList.get(toTest.getItem()).getCount()) {
+										hasAny = true;
+										toConsume.add(new Pair<>(toTest.getItem(), stack.getCount()));
+										break;
+									}
+								}
+
+								if(!hasAny)
+									return;
+							}
+						}
 
 		            		/*
 		            		// Consume materials
@@ -223,50 +247,51 @@ public class StationPacket implements IMessage {
 
 		            		}*/
 
-		            		for(Pair<Item, Integer> i : toConsume)
-		            			itemList.get(i.first()).shrink(i.second());
+						for (Pair<Item, Integer> i : toConsume)
+							itemList.get(i.first()).shrink(i.second());
 
-		            		if(station instanceof TileEntityWorkbench) {
-		            			TileEntityWorkbench workbench = (TileEntityWorkbench) station;
-		            			workbench.craftingTimer = message.craftingTimer;
-		            			workbench.craftingDuration = message.craftingDuration;
-			            		workbench.craftingTarget = CraftingRegistry.getModernCrafting(message.craftingGroup, message.craftingName);
-		            		}
+						if (station instanceof TileEntityWorkbench) {
+							final TileEntityWorkbench workbench = (TileEntityWorkbench) station;
+							workbench.craftingTimer = message.craftingTimer;
+							workbench.craftingDuration = message.craftingDuration;
+							workbench.craftingTarget = CraftingRegistry.getModernCrafting(message.craftingGroup, message.craftingName);
+						}
 
-		            		station.sendUpdate();
-		            		//station.markDirty();
+						station.sendUpdate();
+						//station.markDirty();
 
-		            		modContext.getChannel().sendToAllAround(new StationClientPacket(station.getWorld(), message.teLocation), new TargetPoint(0, message.teLocation.getX(), message.teLocation.getY(), message.teLocation.getZ(), 20));
+						modContext.getChannel().sendToAllAround(new StationClientPacket(station.getWorld(), message.teLocation), new TargetPoint(0, message.teLocation.getX(), message.teLocation.getY(), message.teLocation.getZ(), 20));
 
-	            		} else if(message.opcode == DISMANTLE) {
-	            			for(int i = 9; i < 13; ++i) {
-	            				if(station.mainInventory.getStackInSlot(i).isEmpty())
-									continue;
+					} else if (message.opcode == DISMANTLE) {
+						for (int i = 9; i < 13; ++i) {
+							if (station.mainInventory.getStackInSlot(i).isEmpty())
+								continue;
 
-								ItemStack stack = station.mainInventory.getStackInSlot(i);
-								if(stack.getItem() instanceof IModernCrafting && ((IModernCrafting) stack.getItem()).getModernRecipe() != null && (station.dismantleStatus[i - 9] == -1 || station.dismantleStatus[i - 9] > station.dismantleDuration[i - 9])) {
-									station.dismantleStatus[i - 9] = 0;
-									station.dismantleDuration[i - 9] = ((TileEntityStation) tileEntity).getDismantlingTime(((IModernCrafting) stack.getItem()));
-								}
-	            			}
+							final ItemStack stack = station.mainInventory.getStackInSlot(i);
+							if (stack.getItem() instanceof IModernCrafting && ((IModernCrafting) stack.getItem()).getModernRecipe() != null && (station.dismantleStatus[i - 9] == -1 || station.dismantleStatus[i - 9] > station.dismantleDuration[i - 9])) {
+								station.dismantleStatus[i - 9] = 0;
+								station.dismantleDuration[i - 9] = ((TileEntityStation) tileEntity).getDismantlingTime(((IModernCrafting) stack.getItem()));
+							}
+						}
 
-	            			modContext.getChannel().sendToAllAround(new StationClientPacket(station.getWorld(), message.teLocation), new TargetPoint(0, message.teLocation.getX(), message.teLocation.getY(), message.teLocation.getZ(), 25));
-	            		} else if(message.opcode == MOVE_OUTPUT) {
-	            			((EntityPlayer) world.getEntityByID(message.playerID)).addItemStackToInventory(station.mainInventory.getStackInSlot(message.slotToMove));
-	            		} else if(message.opcode == POP_FROM_QUEUE) {
-	            			if(!(tileEntity instanceof TileEntityAmmoPress)) return;
+						modContext.getChannel().sendToAllAround(new StationClientPacket(station.getWorld(), message.teLocation), new TargetPoint(0, message.teLocation.getX(), message.teLocation.getY(), message.teLocation.getZ(), 25));
 
-	            			TileEntityAmmoPress teAmmoPress = (TileEntityAmmoPress) tileEntity;
+					} else if(message.opcode == MOVE_OUTPUT) {
+						((EntityPlayer) world.getEntityByID(message.playerID)).addItemStackToInventory(station.mainInventory.getStackInSlot(message.slotToMove));
 
-	            			if(teAmmoPress.hasStack() && teAmmoPress.getCraftingQueue().size() > message.slotToMove)
-	            				teAmmoPress.getCraftingQueue().remove(message.slotToMove);
+					} else if(message.opcode == POP_FROM_QUEUE) {
+						if(!(tileEntity instanceof TileEntityAmmoPress))
+							return;
 
-	            			modContext.getChannel().sendToAllAround(new StationClientPacket(station.getWorld(), message.teLocation), new TargetPoint(0, message.teLocation.getX(), message.teLocation.getY(), message.teLocation.getZ(), 25));
-	            		}
-	            	}
-				});
-			}
-			
+						final TileEntityAmmoPress teAmmoPress = (TileEntityAmmoPress) tileEntity;
+						if(teAmmoPress.hasStack() && teAmmoPress.getCraftingQueue().size() > message.slotToMove)
+							teAmmoPress.getCraftingQueue().remove(message.slotToMove);
+
+						modContext.getChannel().sendToAllAround(new StationClientPacket(station.getWorld(), message.teLocation), new TargetPoint(0, message.teLocation.getX(), message.teLocation.getY(), message.teLocation.getZ(), 25));
+					}
+				}
+			});
+
 			return null;
 		}
 	}
