@@ -28,6 +28,8 @@ import net.minecraftforge.oredict.OreDictionary;
 import java.util.ArrayList;
 import java.util.HashMap;
 
+import static com.paneedah.mwc.utils.ModReference.LOG;
+
 public class StationPacket implements IMessage {
 
 	
@@ -200,7 +202,7 @@ public class StationPacket implements IMessage {
 								}
 
 								if (count < stack.getCount()) {
-									System.out.println("Not enough items to craft! | " + count + " < " + stack.getCount());
+									LOG.debug("Not enough items to craft! | " + count + " < " + stack.getCount());
 									return;
 								}
 
