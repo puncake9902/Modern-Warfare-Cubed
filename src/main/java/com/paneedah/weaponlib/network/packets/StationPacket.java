@@ -179,7 +179,6 @@ public class StationPacket implements IMessage {
 							return;
 
 						// Add all items to an item list to verify that they exist.
-						final ArrayList<Pair<Item, Integer>> toConsume = new ArrayList<>();
 						final HashMap<Item, ItemStack> itemList = new HashMap<>(27, 0.7f);
 						for (int i = 23; i < station.mainInventory.getSlots(); ++i) {
 							final ItemStack stack = station.mainInventory.getStackInSlot(i);
@@ -195,19 +194,29 @@ public class StationPacket implements IMessage {
 								if (!itemList.containsKey(item))
 									return;
 
-								int count = 0;
+								int count = stack.getCount();
+								// keep or no keep?
+
+//								for (int i = 23; i < station.mainInventory.getSlots(); ++i) {
+//									final ItemStack iS = station.mainInventory.getStackInSlot(i);
+//									if (iS.getItem() == item)
+//										count += iS.getCount();
+//								}
+
 								for (int i = 23; i < station.mainInventory.getSlots(); ++i) {
 									final ItemStack iS = station.mainInventory.getStackInSlot(i);
-									if (iS.getItem() == item)
-										count += iS.getCount();
+									if (iS.getItem() == stack.getItem()) {
+										if(count != 0) {
+											count -= iS.getCount();
+											iS.shrink(stack.getCount());
+
+											System.out.println(count + " " + itemList.get(iS.getItem()) + " " + i + " debug id : 22912" + " " + iS.getCount() + " " + stack.getCount() + " " + stack.getItem());
+											if (count == 0)
+												break;
+										}
+									}
 								}
 
-								if (count < stack.getCount()) {
-									LOG.debug("Not enough items to craft! | " + count + " < " + stack.getCount());
-									return;
-								}
-
-								toConsume.add(new Pair<>(item, stack.getCount()));
 								// Paneedah - End
 
 								/* Paneedah: Old code to consume items
@@ -219,28 +228,25 @@ public class StationPacket implements IMessage {
 
 							} else {
 								// Stack is an OreDictionary term
-								boolean hasAny = false;
 								final NonNullList<ItemStack> list = OreDictionary.getOres(stack.getOreDictionaryEntry());
-								int count = 0;
+								int count = stack.getCount();
 								for (ItemStack toTest : list) {
 									if (itemList.containsKey(toTest.getItem()) && toTest.getCount() <= itemList.get(toTest.getItem()).getCount()) {
-										hasAny = true;
 										for (int i = 23; i < station.mainInventory.getSlots(); ++i) {
 											final ItemStack iS = station.mainInventory.getStackInSlot(i);
 											if (iS.getItem() == stack.getItem()) {
-												count += iS.getCount();
-												System.out.println(count + " " + "debug id : 9927652");
-												if(count <= stack.getCount()) {
-													toConsume.add(new Pair<>(iS.getItem(), stack.getCount()));
-													System.out.println(count + " " + "debug id : 22912");
+												if(count != 0) {
+													count -= iS.getCount();
+													iS.shrink(stack.getCount());
+
+													System.out.println(count + " " + itemList.get(iS.getItem()) + " " + i + " debug id : 22912" + " " + iS.getCount() + " " + stack.getCount() + " " + stack.getItem());
+													if (count == 0)
+														break;
 												}
 											}
 										}
 									}
 								}
-
-								if(!hasAny || stack.getCount() > count)
-									return;
 							}
 						}
 
@@ -259,9 +265,6 @@ public class StationPacket implements IMessage {
 		            			}
 
 		            		}*/
-
-						for (Pair<Item, Integer> i : toConsume)
-							itemList.get(i.first()).shrink(i.second());
 
 						if (station instanceof TileEntityWorkbench) {
 							final TileEntityWorkbench workbench = (TileEntityWorkbench) station;

@@ -1735,9 +1735,8 @@
           "count": 4
         },
         {
-          "entryName": "paper",
-          "defaultItem": "minecraft:paper",
-          "isOreDictionary": true,
+          "entryName": "minecraft:paper",
+          "isOreDictionary": false,
           "count": 5
         }
       ]
@@ -2879,9 +2878,8 @@
           "count": 3
         },
         {
-          "entryName": "paper",
-          "defaultItem": "minecraft:paper",
-          "isOreDictionary": true,
+          "entryName": "minecraft:paper",
+          "isOreDictionary": false,
           "count": 2
         }
       ]
