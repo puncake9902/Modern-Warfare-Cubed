@@ -77,8 +77,10 @@ and this project follows to [Ragnarök Versioning Convention](https://gist.githu
 
 ### Fixed
 
+- Fixed the Crafting through the Custom Bench's crafting, so it removes the correct amount of items when you craft with items spread out
+- Fixed the Crafting on the Custom Bench's Verification if the items are spread out
 - Fixed entity generation issue (now modifying the entity's health and generation rate requires restarting the game)
-- Fixed Minecraft armor making you invulnerable to bullets (less realistic but they aren't anyway lol)
+- Fixed Minecraft armor making you invulnerable to bullets (less realistic, but they aren't anyway lol)
 - Fixed issue with config for bullets breaking glass being ignored
 - Fixed bullet's being able to penetrate:
   - Glass
