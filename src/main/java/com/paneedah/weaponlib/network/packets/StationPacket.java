@@ -188,9 +188,10 @@ public class StationPacket implements IMessage {
 
 						// Verify
 						for (final CraftingEntry stack : modernRecipe) {
+							// Paneedah Start - Check for total item quantity instead of stack quantity
 							if (!stack.isOreDictionary()) {
-								// Paneedah Start - Check for total item quantity instead of stack quantity
 								final Item item = stack.getItem();
+
 								if (!itemList.containsKey(item))
 									return;
 
@@ -220,15 +221,25 @@ public class StationPacket implements IMessage {
 								// Stack is an OreDictionary term
 								boolean hasAny = false;
 								final NonNullList<ItemStack> list = OreDictionary.getOres(stack.getOreDictionaryEntry());
+								int count = 0;
 								for (ItemStack toTest : list) {
-									if (itemList.containsKey(toTest.getItem()) && stack.getCount() <= itemList.get(toTest.getItem()).getCount()) {
+									if (itemList.containsKey(toTest.getItem()) && toTest.getCount() <= itemList.get(toTest.getItem()).getCount()) {
 										hasAny = true;
-										toConsume.add(new Pair<>(toTest.getItem(), stack.getCount()));
-										break;
+										for (int i = 23; i < station.mainInventory.getSlots(); ++i) {
+											final ItemStack iS = station.mainInventory.getStackInSlot(i);
+											if (iS.getItem() == stack.getItem()) {
+												count += iS.getCount();
+												System.out.println(count + " " + "debug id : 9927652");
+												if(count <= stack.getCount()) {
+													toConsume.add(new Pair<>(iS.getItem(), stack.getCount()));
+													System.out.println(count + " " + "debug id : 22912");
+												}
+											}
+										}
 									}
 								}
 
-								if(!hasAny)
+								if(!hasAny || stack.getCount() > count)
 									return;
 							}
 						}
