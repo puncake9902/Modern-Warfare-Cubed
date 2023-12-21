@@ -210,7 +210,6 @@ public class StationPacket implements IMessage {
 											count -= iS.getCount();
 											iS.shrink(stack.getCount());
 
-											System.out.println(count + " " + itemList.get(iS.getItem()) + " " + i + " debug id : 22912" + " " + iS.getCount() + " " + stack.getCount() + " " + stack.getItem());
 											if (count == 0)
 												break;
 										}
@@ -239,7 +238,6 @@ public class StationPacket implements IMessage {
 													count -= iS.getCount();
 													iS.shrink(stack.getCount());
 
-													System.out.println(count + " " + itemList.get(iS.getItem()) + " " + i + " debug id : 22912" + " " + iS.getCount() + " " + stack.getCount() + " " + stack.getItem());
 													if (count == 0)
 														break;
 												}
