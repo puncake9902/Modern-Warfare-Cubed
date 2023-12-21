@@ -103,6 +103,7 @@ and this project follows to [Ragnarök Versioning Convention](https://gist.githu
   - Dumpster
   - Sandbag
   - Duel Floodlight
+- Fixed workbench and ammunition press handling their inventory stack by stack instead of all at once
 
 ### Removed
 
