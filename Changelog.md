@@ -83,7 +83,6 @@ and this project follows to [Ragnarök Versioning Convention](https://gist.githu
 
 ### Fixed
 
-- Fixed modifying the number of bullets through memory
 - Fixed entity generation issue (now modifying the entity's health and generation rate requires restarting the game)
 - Fixed Minecraft armor making you invulnerable to bullets (less realistic but they aren't anyway lol)
 - Fixed issue with config for bullets breaking glass being ignored

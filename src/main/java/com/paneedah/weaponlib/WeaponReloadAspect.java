@@ -707,7 +707,7 @@ public class WeaponReloadAspect implements Aspect<WeaponState, PlayerWeaponInsta
 
             if (attachment instanceof ItemMagazine && !player.isCreative()) {
                 previousMagazine = attachment;
-                ItemStack attachmentItemStack = ((ItemMagazine) attachment).create(Tags.getAmmo(weaponItemStack));
+                ItemStack attachmentItemStack = ((ItemMagazine) attachment).create(weaponInstance.getAmmo());
                 if (!player.inventory.addItemStackToInventory(attachmentItemStack))
                     LOG.error("Cannot add attachment " + attachment + " for " + weaponInstance + "back to the inventory");
             }
