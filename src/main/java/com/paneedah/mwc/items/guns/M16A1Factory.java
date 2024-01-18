@@ -72,7 +72,7 @@ public class M16A1Factory implements GunFactory {
 		))
 		.withInformationProvider(stack -> Arrays.asList(
 		"Type: Assault Rifle", 
-		"Damage: 6", 
+		"Damage: 9", 
 		"Cartridge: 5.56x45mm NATO",
 		"Fire Rate: SEMI, AUTO",
 		"Rate of Fire: 80/100",
@@ -819,7 +819,7 @@ public class M16A1Factory implements GunFactory {
                     }, 250, 0))
 					
 			.build())
-		.withSpawnEntityDamage(6f)
+		.withSpawnEntityDamage(9f)
 		.withSpawnEntityGravityVelocity(0.0118f)
 				
 		 
